@@ -1,19 +1,27 @@
 {
   "expo": {
-    "name": "travel-expense-tracker",
-    "slug": "travel-expense-tracker",
+    "name": "Money Track",
+    "slug": "money-track",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "scheme": "money-track",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.moneytrack.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to capture receipt photos",
+        "NSPhotoLibraryUsageDescription": "Used to attach photos to expenses",
+        "NSLocalNetworkUsageDescription": "Used for peer-to-peer sync between devices",
+        "NSBluetoothAlwaysUsageDescription": "Used for Bluetooth data sync between devices"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +29,33 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.moneytrack.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_ADVERTISE"
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to take receipt photos"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access photos for expense attachments"
+        }
+      ]
+    ]
   }
 }

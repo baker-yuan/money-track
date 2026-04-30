@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Build output (本地打包产物)
+/build/
+
 # Native
 .kotlin/
 *.orig.*
@@ -39,3 +42,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# IDE
+.idea/
+.vscode/
+
+# Test
+coverage/
