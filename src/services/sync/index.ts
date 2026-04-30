@@ -1,13 +1,45 @@
 /**
  * Sync protocol types and service orchestration.
- * Handles the full sync lifecycle: handshake → negotiate → push/pull → confirm.
+ *
+ * Flow:
+ * 1. Host "shares" a project → generates QR code with project metadata + connection info
+ * 2. Guest scans QR → if project doesn't exist locally, auto-creates it
+ * 3. Bidirectional sync: exchange deltas, merge conflicts, confirm
+ *
+ * Handles: handshake → project bootstrap → negotiate → push/pull → confirm
  */
 
-import type { UUID, EntityType } from '@/types';
+import type { UUID, EntityType, Project, Category, ISODateString } from '@/types';
 import { mergeEngine, type SyncDelta, type MergeResult } from './merge-engine';
-import { deviceRepository } from '@/database/repositories';
+import { deviceRepository, projectRepository, categoryRepository } from '@/database/repositories';
 import { generateUUID, nowISO } from '@/utils';
 import { getDatabase } from '@/database';
+
+// ─── QR Code Payload ─────────────────────────────────────────────────────────
+
+/**
+ * Data encoded in the QR code when sharing a project.
+ * Contains everything the guest needs to connect and bootstrap the project.
+ */
+export interface SyncQRPayload {
+  /** HTTP server URL on LAN */
+  url: string;
+  /** Host device ID */
+  deviceId: string;
+  /** One-time session token for authentication */
+  token: string;
+  /** Project to sync */
+  project: {
+    id: string;
+    name: string;
+    description: string;
+    base_currency: string;
+    budget: number | null;
+    cover_color: string;
+    start_date: string | null;
+    end_date: string | null;
+  };
+}
 
 // ─── Protocol Messages ───────────────────────────────────────────────────────
 
@@ -15,14 +47,20 @@ export interface HandshakeRequest {
   type: 'handshake';
   deviceId: UUID;
   deviceName: string;
-  projectIds: UUID[];
+  /** The project ID being synced */
+  projectId: UUID;
+  /** Whether the guest already has this project */
+  hasProject: boolean;
 }
 
 export interface HandshakeResponse {
   type: 'handshake_ack';
   deviceId: UUID;
   deviceName: string;
-  projectIds: UUID[];
+  /** Full project data for bootstrap (if guest doesn't have it) */
+  projectData: Project | null;
+  /** Categories to bootstrap (global + project-specific) */
+  categories: Category[] | null;
 }
 
 export interface NegotiateRequest {
@@ -35,6 +73,7 @@ export interface NegotiateResponse {
   type: 'negotiate_ack';
   projectId: UUID;
   vectors: { entityType: EntityType; lastVersion: number }[];
+  deltas: SyncDelta[];
 }
 
 export interface PushRequest {
@@ -66,44 +105,131 @@ const ENTITY_TYPES: EntityType[] = ['project', 'category', 'expense', 'expense_p
 export class SyncOrchestrator {
   private sessionId: UUID;
   private peerDeviceId: UUID | null = null;
+  private projectId: UUID | null = null;
 
   constructor() {
     this.sessionId = generateUUID();
   }
 
+  // ─── Host Side ───────────────────────────────────────────────────────────
+
   /**
-   * Create a handshake message for this device.
+   * Generate QR payload for sharing a project.
+   * Called by the host when they tap "share project".
    */
-  async createHandshake(projectIds: UUID[]): Promise<HandshakeRequest> {
+  async generateSharePayload(projectId: UUID, serverUrl: string): Promise<SyncQRPayload> {
     const device = await deviceRepository.getOrCreate();
+    const project = await projectRepository.findById(projectId);
+    if (!project) throw new Error('Project not found');
+
+    const token = generateUUID();
+
     return {
-      type: 'handshake',
-      deviceId: device.id,
-      deviceName: device.name,
-      projectIds,
+      url: serverUrl,
+      deviceId: device.id as string,
+      token: token as string,
+      project: {
+        id: project.id as string,
+        name: project.name,
+        description: project.description,
+        base_currency: project.base_currency as string,
+        budget: project.budget,
+        cover_color: project.cover_color,
+        start_date: project.start_date as string | null,
+        end_date: project.end_date as string | null,
+      },
     };
   }
 
   /**
-   * Process incoming handshake and respond.
+   * Host processes guest's handshake.
+   * If guest doesn't have the project, include full project + categories for bootstrap.
    */
   async processHandshake(request: HandshakeRequest): Promise<HandshakeResponse> {
     this.peerDeviceId = request.deviceId;
+    this.projectId = request.projectId;
     const device = await deviceRepository.getOrCreate();
-    const db = await getDatabase();
-    const projects = await db.getAllAsync<{ id: UUID }>(
-      'SELECT id FROM projects WHERE deleted_at IS NULL'
-    );
+
+    let projectData: Project | null = null;
+    let categories: Category[] | null = null;
+
+    if (!request.hasProject) {
+      // Guest doesn't have this project - send full data for bootstrap
+      projectData = await projectRepository.findById(request.projectId);
+      if (projectData) {
+        categories = await categoryRepository.findByProject(request.projectId);
+      }
+    }
+
     return {
       type: 'handshake_ack',
       deviceId: device.id,
       deviceName: device.name,
-      projectIds: projects.map(p => p.id),
+      projectData,
+      categories,
     };
   }
 
+  // ─── Guest Side ──────────────────────────────────────────────────────────
+
+  /**
+   * Guest: Check if we already have this project locally.
+   */
+  async hasProjectLocally(projectId: UUID): Promise<boolean> {
+    const project = await projectRepository.findById(projectId);
+    return project !== null;
+  }
+
+  /**
+   * Guest: Bootstrap a project received from host.
+   * Creates the project and categories locally if they don't exist.
+   */
+  async bootstrapProject(projectData: Project, categories: Category[]): Promise<void> {
+    const db = await getDatabase();
+
+    await db.withTransactionAsync(async () => {
+      // Insert the project
+      const p = projectData;
+      await db.runAsync(
+        `INSERT OR IGNORE INTO projects (id, name, description, base_currency, budget, start_date, end_date, cover_color, created_at, updated_at, deleted_at, version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        p.id, p.name, p.description, p.base_currency, p.budget,
+        p.start_date, p.end_date, p.cover_color, p.created_at, p.updated_at, p.deleted_at, p.version
+      );
+
+      // Insert categories
+      for (const c of categories) {
+        await db.runAsync(
+          `INSERT OR IGNORE INTO categories (id, project_id, name, icon, color, sort_order, created_at, updated_at, deleted_at, version)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          c.id, c.project_id, c.name, c.icon, c.color, c.sort_order, c.created_at, c.updated_at, c.deleted_at, c.version
+        );
+      }
+    });
+  }
+
+  /**
+   * Guest: Create handshake request to send to host.
+   */
+  async createHandshake(projectId: UUID): Promise<HandshakeRequest> {
+    const device = await deviceRepository.getOrCreate();
+    const hasProject = await this.hasProjectLocally(projectId);
+    this.projectId = projectId;
+
+    return {
+      type: 'handshake',
+      deviceId: device.id,
+      deviceName: device.name,
+      projectId,
+      hasProject,
+    };
+  }
+
+  // ─── Shared (Both Sides) ─────────────────────────────────────────────────
+
   /**
    * Negotiate sync by comparing version vectors.
+   * Returns our vectors + the deltas we want to send to the peer.
    */
   async negotiate(projectId: UUID, peerDeviceId: UUID): Promise<{ localVectors: NegotiateRequest; deltasToSend: SyncDelta[] }> {
     const vectors: { entityType: EntityType; lastVersion: number }[] = [];
@@ -133,14 +259,14 @@ export class SyncOrchestrator {
   /**
    * Confirm sync session and update vectors.
    */
-  async confirmSync(peerDeviceId: UUID, result: MergeResult): Promise<void> {
+  async confirmSync(peerDeviceId: UUID, changesSent: number, changesReceived: number): Promise<void> {
     const db = await getDatabase();
 
     // Record sync session
     await db.runAsync(
       `INSERT INTO sync_sessions (id, peer_device_id, direction, started_at, completed_at, changes_sent, changes_received, status)
        VALUES (?, ?, 'bidirectional', ?, ?, ?, ?, 'completed')`,
-      this.sessionId, peerDeviceId, nowISO(), nowISO(), result.applied, result.applied
+      this.sessionId, peerDeviceId, nowISO(), nowISO(), changesSent, changesReceived
     );
 
     // Update vectors for all entity types
