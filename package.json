@@ -8,7 +8,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "npm run build:android",
+    "build:android": "npx eas build --platform android --profile local --local --output build/money-track.apk",
+    "build:ios": "npx eas build --platform ios --profile local --local --output build/money-track.tar.gz",
+    "build:bundle": "npx expo export --output-dir build/bundle --platform ios"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

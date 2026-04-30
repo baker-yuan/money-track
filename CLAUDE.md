@@ -1,25 +1,28 @@
 # Money Track - 项目规则
 
-## 构建规则
+## 构建规则（必须遵守）
 
-**每次代码修改后，必须执行构建打包，生成安装包放在项目 `build/` 目录下。**
+**每次代码修改完成后，必须自动执行构建打包。用户只需要从 `build/` 目录复制产物。**
 
+流程：
+1. 修改代码
+2. `npx tsc --noEmit` 类型检查通过
+3. 自动执行 `npm run build:bundle` 生成打包产物
+4. 产物位置：`build/bundle/`（JS Bundle）或 `build/money-track.apk`（APK）
+
+构建命令：
 ```bash
-# 构建 Android APK（放在 build/ 目录）
-npx eas build --platform android --profile local --local --output build/money-track.apk
+# 默认构建（JS Bundle，速度快）
+npm run build:bundle
 
-# 构建 iOS 安装包（模拟器用，放在 build/ 目录）
-npx eas build --platform ios --profile local --local --output build/money-track.tar.gz
+# 完整 Android APK（需要 Android SDK）
+npm run build:android
 
-# 如果只需要 JS Bundle（快速验证）
-npx expo export --output-dir build/bundle --platform ios
+# 完整 iOS 包（需要 Xcode）
+npm run build:ios
 ```
 
-构建产物：
-- Android: `build/money-track.apk`
-- iOS: `build/money-track.tar.gz`（模拟器）或 `build/money-track.ipa`（真机）
-
-构建产物目录 `build/` 已在 `.gitignore` 中忽略，不纳入版本控制。
+产物目录 `build/` 已在 `.gitignore` 中忽略。用户从此目录直接复制安装包即可。
 
 ## 开发规范
 
