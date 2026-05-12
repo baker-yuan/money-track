@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "mcp__context7__resolve-library-id",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:bundle:*)",
+      "Bash(node --version:*)",
+      "Bash(source:*)",
+      "Bash(nvm use:*)",
+      "Bash(npm install:*)",
+      "Bash(npx jest)",
+      "Bash(npm run build:android:*)",
+      "Bash(export ANDROID_HOME:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(node -e \"const p = require\\(''/Users/yuanyu/code/ai/money-track/package.json''\\); console.log\\(p.dependencies[''expo-location''] || ''not installed''\\)\")",
+      "Bash(./gradlew assembleRelease:*)",
+      "Bash(echo:*)",
+      "Bash(/Users/yuanyu/.nvm/versions/node/v20.19.4/bin/npx tsc --noEmit)",
+      "Bash(PATH=\"/Users/yuanyu/.nvm/versions/node/v20.19.4/bin:$PATH\" npx tsc:*)",
+      "Bash(export PATH=\"/Users/yuanyu/.nvm/versions/node/v20.19.4/bin:$PATH\")",
+      "Bash(node -e \"const {execSync} = require\\(''child_process''\\); try { const r = execSync\\(''npx tsc --noEmit'', {encoding:''utf8'', cwd:''/Users/yuanyu/code/ai/money-track''}\\); console.log\\(r\\); } catch\\(e\\) { console.log\\(e.stdout\\); console.log\\(e.stderr\\); }\")",
+      "Bash(tee:*)",
+      "Bash(npx --yes tsc:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(node:*)",
+      "Bash(/bin/ls:*)",
+      "Bash(/bin/echo:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

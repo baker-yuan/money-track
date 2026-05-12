@@ -10,7 +10,7 @@ import type { UUID } from '@/types';
 
 export default function SyncHostScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
-  const { currentProject } = useProjectStore();
+  const { currentProject, loadProject } = useProjectStore();
   const [qrData, setQrData] = useState<string | null>(null);
   const [status, setStatus] = useState<'preparing' | 'ready' | 'connected' | 'syncing' | 'done' | 'error'>('preparing');
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +19,10 @@ export default function SyncHostScreen() {
   const [syncStats, setSyncStats] = useState<{ sent: number; received: number } | null>(null);
 
   useEffect(() => {
-    prepareShare();
-  }, []);
+    if (projectId) {
+      loadProject(projectId as UUID).then(() => prepareShare());
+    }
+  }, [projectId]);
 
   async function prepareShare() {
     try {
@@ -76,7 +78,7 @@ export default function SyncHostScreen() {
           </View>
           <Text style={styles.title}>分享项目</Text>
           <Text style={styles.description}>
-            让对方打开 Money Track，扫描此二维码即可加入项目并同步数据
+            让对方打开记账本，扫描此二维码即可加入项目并同步数据
           </Text>
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>对方没有此项目？扫码会自动创建</Text>

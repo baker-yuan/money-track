@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getDatabase } from '@/database';
-import { deviceRepository, categoryRepository } from '@/database/repositories';
-import { DEFAULT_CATEGORIES } from '@/constants';
+import { deviceRepository } from '@/database/repositories';
+import { useSettingsStore } from '@/stores';
 
 /**
  * Initializes the database and device on app start.
@@ -10,13 +10,21 @@ import { DEFAULT_CATEGORIES } from '@/constants';
 export function useAppInit() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { loadSettings } = useSettingsStore();
 
   useEffect(() => {
     async function init() {
       try {
         await getDatabase();
         await deviceRepository.getOrCreate();
-        await categoryRepository.ensureDefaults(DEFAULT_CATEGORIES);
+        await loadSettings();
+
+        // Sync userName to device.owner_name (for sync protocol identification)
+        const settings = useSettingsStore.getState().settings;
+        if (settings.userName) {
+          await deviceRepository.updateOwnerName(settings.userName);
+        }
+
         setIsReady(true);
       } catch (e) {
         setError((e as Error).message);

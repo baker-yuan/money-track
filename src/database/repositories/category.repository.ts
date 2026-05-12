@@ -1,30 +1,19 @@
 import type { UUID, Category, CreateCategoryInput, EntityType } from '@/types';
 import { generateUUID, nowISO } from '@/utils';
 import { BaseRepository } from './base.repository';
+import { DEFAULT_CATEGORIES } from '@/constants';
 
 export class CategoryRepository extends BaseRepository<Category> {
   protected tableName = 'categories';
   protected entityType: EntityType = 'category';
 
-  async findByProject(projectId: UUID | null): Promise<Category[]> {
+  async findByProject(projectId: UUID): Promise<Category[]> {
     const db = await this.getDb();
-    if (projectId === null) {
-      return db.getAllAsync<Category>(
-        'SELECT * FROM categories WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY sort_order'
-      );
-    }
     return db.getAllAsync<Category>(
       `SELECT * FROM categories
-       WHERE (project_id = ? OR project_id IS NULL) AND deleted_at IS NULL
+       WHERE project_id = ? AND deleted_at IS NULL
        ORDER BY sort_order`,
       projectId
-    );
-  }
-
-  async findGlobalDefaults(): Promise<Category[]> {
-    const db = await this.getDb();
-    return db.getAllAsync<Category>(
-      'SELECT * FROM categories WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY sort_order'
     );
   }
 
@@ -58,14 +47,38 @@ export class CategoryRepository extends BaseRepository<Category> {
     return category;
   }
 
-  async ensureDefaults(defaults: { name: string; icon: string; color: string }[]): Promise<void> {
-    const db = await this.getDb();
-    const existing = await this.findGlobalDefaults();
+  /**
+   * Create default categories for a specific project.
+   * Reads from global_default_categories if available, otherwise falls back to DEFAULT_CATEGORIES.
+   */
+  async createDefaultsForProject(projectId: UUID): Promise<void> {
+    const existing = await this.findByProject(projectId);
     if (existing.length > 0) return;
+
+    const db = await this.getDb();
+
+    // Try to read from global_default_categories table
+    let defaults: { name: string; icon: string; color: string }[] = [];
+    try {
+      const globalRows = await db.getAllAsync<{ name: string; icon: string; color: string }>(
+        'SELECT name, icon, color FROM global_default_categories ORDER BY sort_order'
+      );
+      if (globalRows.length > 0) {
+        defaults = globalRows;
+      }
+    } catch {
+      // Table may not exist yet, fall back
+    }
+
+    // Fallback to hardcoded defaults
+    if (defaults.length === 0) {
+      defaults = DEFAULT_CATEGORIES;
+    }
 
     for (let i = 0; i < defaults.length; i++) {
       const def = defaults[i]!;
       await this.create({
+        project_id: projectId,
         name: def.name,
         icon: def.icon,
         color: def.color,

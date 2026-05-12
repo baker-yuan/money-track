@@ -6,13 +6,14 @@ import { Button } from '@/components/ui';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '@/constants/theme';
 import { SyncOrchestrator, type SyncQRPayload } from '@/services/sync';
 import { useProjectStore } from '@/stores';
+import { deviceRepository } from '@/database/repositories';
 import type { UUID } from '@/types';
 
 type SyncStatus = 'scanning' | 'connecting' | 'bootstrapping' | 'syncing' | 'done' | 'error';
 
 export default function SyncJoinScreen() {
   const router = useRouter();
-  const { loadProjects } = useProjectStore();
+  const { loadProjects, projects } = useProjectStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [status, setStatus] = useState<SyncStatus>('scanning');
@@ -35,6 +36,18 @@ export default function SyncJoinScreen() {
       }
 
       setProjectName(payload.project.name);
+
+      // Check if a project with the same name already exists locally
+      if (projects.some(p => p.name === payload.project.name)) {
+        throw new Error(`项目「${payload.project.name}」已存在，无法重复同步`);
+      }
+
+      // Record the host device info so we can identify synced records
+      await deviceRepository.upsertKnownDevice(
+        payload.deviceId as UUID,
+        payload.ownerName ?? '',
+        payload.project.name // Use project name as fallback device identifier
+      );
 
       const orchestrator = new SyncOrchestrator();
       const projectId = payload.project.id as UUID;

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useExpenseStore, useCategoryStore, useProjectStore } from '@/stores';
-import { Button, Input } from '@/components/ui';
-import { CurrencyPicker, CategoryPicker } from '@/components/forms';
+import { useExpenseStore, useCategoryStore, useProjectStore, useSettingsStore } from '@/stores';
+import { Button, Input, useToast } from '@/components/ui';
+import { CategoryPicker, LocationInput } from '@/components/forms';
 import { colors, spacing } from '@/constants/theme';
-import { toCurrencyCode, nowISO } from '@/utils';
+import { toCurrencyCode } from '@/utils';
 import type { UUID, CurrencyCode } from '@/types';
 
 export default function CreateExpenseScreen() {
@@ -14,19 +14,19 @@ export default function CreateExpenseScreen() {
   const { createExpense } = useExpenseStore();
   const { categories, loadCategories } = useCategoryStore();
   const { currentProject } = useProjectStore();
+  const { settings } = useSettingsStore();
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState<CurrencyCode>(
-    currentProject?.base_currency ?? toCurrencyCode('CNY')
-  );
-  const [exchangeRate, setExchangeRate] = useState('1');
   const [categoryId, setCategoryId] = useState<UUID | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]!);
   const [notes, setNotes] = useState('');
-  const [paidBy, setPaidBy] = useState('');
+  const [paidBy, setPaidBy] = useState(settings.defaultPaidBy);
   const [location, setLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
+
+  const currency: CurrencyCode = currentProject?.base_currency ?? toCurrencyCode('CNY');
 
   useEffect(() => {
     if (projectId) {
@@ -34,19 +34,21 @@ export default function CreateExpenseScreen() {
     }
   }, [projectId, loadCategories]);
 
-  const isDifferentCurrency = currency !== currentProject?.base_currency;
-
   const handleCreate = async () => {
+    if (!projectId) {
+      toast.error('缺少项目ID');
+      return;
+    }
     if (!title.trim()) {
-      Alert.alert('请输入标题');
+      toast.error('请输入标题');
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
-      Alert.alert('请输入有效金额');
+      toast.error('请输入有效金额');
       return;
     }
     if (!categoryId) {
-      Alert.alert('请选择分类');
+      toast.error('请选择分类');
       return;
     }
 
@@ -57,7 +59,7 @@ export default function CreateExpenseScreen() {
         category_id: categoryId,
         amount: parseFloat(amount),
         currency,
-        exchange_rate: isDifferentCurrency ? parseFloat(exchangeRate) || 1 : 1,
+        exchange_rate: 1,
         title: title.trim(),
         notes: notes.trim(),
         date,
@@ -66,7 +68,7 @@ export default function CreateExpenseScreen() {
       });
       router.back();
     } catch (e) {
-      Alert.alert('创建失败', (e as Error).message);
+      toast.error('创建失败', (e as Error).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -87,29 +89,8 @@ export default function CreateExpenseScreen() {
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
-      />
-
-      <CurrencyPicker
-        label="货币"
-        value={currency}
-        onChange={setCurrency}
-      />
-
-      {isDifferentCurrency && (
-        <Input
-          label={`汇率（1 ${currency} = ? ${currentProject?.base_currency}）`}
-          placeholder="1.0"
-          value={exchangeRate}
-          onChangeText={setExchangeRate}
-          keyboardType="decimal-pad"
-        />
-      )}
-
-      <CategoryPicker
-        label="分类"
-        categories={categories}
-        value={categoryId}
-        onChange={setCategoryId}
+        prefix="¥"
+        suffix="元"
       />
 
       <Input
@@ -120,13 +101,13 @@ export default function CreateExpenseScreen() {
       />
 
       <Input
-        label="付款人（可选）"
+        label="付款人"
         placeholder="谁付的钱"
         value={paidBy}
         onChangeText={setPaidBy}
       />
 
-      <Input
+      <LocationInput
         label="地点（可选）"
         placeholder="在哪消费"
         value={location}
@@ -140,6 +121,13 @@ export default function CreateExpenseScreen() {
         onChangeText={setNotes}
         multiline
         numberOfLines={3}
+      />
+
+      <CategoryPicker
+        label="分类"
+        categories={categories}
+        value={categoryId}
+        onChange={setCategoryId}
       />
 
       <View style={styles.actions}>

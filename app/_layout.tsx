@@ -2,7 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAppInit } from '@/hooks/useAppInit';
-import { LoadingScreen } from '@/components/ui';
+import { LoadingScreen, ToastProvider } from '@/components/ui';
 import { colors } from '@/constants/theme';
 
 export default function RootLayout() {
@@ -13,7 +13,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <ToastProvider>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -24,8 +24,8 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen
-          name="index"
-          options={{ title: '我的旅行', headerLargeTitle: true }}
+          name="(tabs)"
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="project/[id]"
@@ -52,6 +52,6 @@ export default function RootLayout() {
           options={{ title: '加入同步', presentation: 'modal' }}
         />
       </Stack>
-    </>
+    </ToastProvider>
   );
 }

@@ -1,7 +1,8 @@
 import type { UUID, Project, CreateProjectInput, UpdateProjectInput, ProjectWithStats, EntityType, ISODateString } from '@/types';
-import { generateUUID, nowISO, toCurrencyCode, toISO } from '@/utils';
+import { generateUUID, nowISO } from '@/utils';
 import { DEFAULT_CURRENCY, PROJECT_COLORS } from '@/constants';
 import { BaseRepository } from './base.repository';
+import { categoryRepository } from './category.repository';
 
 export class ProjectRepository extends BaseRepository<Project> {
   protected tableName = 'projects';
@@ -59,6 +60,9 @@ export class ProjectRepository extends BaseRepository<Project> {
       );
       await this.logChange(db, id, 'INSERT', 1, project as unknown as Record<string, unknown>);
     });
+
+    // Create default categories for the new project
+    await categoryRepository.createDefaultsForProject(id);
 
     return project;
   }

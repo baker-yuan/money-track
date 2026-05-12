@@ -11,18 +11,22 @@ export class ExpenseRepository extends BaseRepository<Expense> {
 
   async findByProject(projectId: UUID): Promise<ExpenseWithCategory[]> {
     const db = await this.getDb();
+    const localDeviceId = await this.getDeviceId(db);
     return db.getAllAsync<ExpenseWithCategory>(`
       SELECT
         e.*,
         c.name as category_name,
         c.icon as category_icon,
         c.color as category_color,
-        (SELECT COUNT(*) FROM expense_photos p WHERE p.expense_id = e.id AND p.deleted_at IS NULL) as photo_count
+        (SELECT COUNT(*) FROM expense_photos p WHERE p.expense_id = e.id AND p.deleted_at IS NULL) as photo_count,
+        CASE WHEN e.device_id = ? THEN 1 ELSE 0 END as is_local,
+        COALESCE(kd.owner_name, '') as author_name
       FROM expenses e
       LEFT JOIN categories c ON c.id = e.category_id
+      LEFT JOIN known_devices kd ON kd.device_id = e.device_id
       WHERE e.project_id = ? AND e.deleted_at IS NULL
       ORDER BY e.date DESC, e.created_at DESC
-    `, projectId);
+    `, localDeviceId, projectId);
   }
 
   async findByProjectWithFilters(
@@ -37,6 +41,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
     }
   ): Promise<ExpenseWithCategory[]> {
     const db = await this.getDb();
+    const localDeviceId = await this.getDeviceId(db);
     const conditions: string[] = ['e.project_id = ?', 'e.deleted_at IS NULL'];
     const params: (string | number)[] = [projectId];
 
@@ -72,12 +77,15 @@ export class ExpenseRepository extends BaseRepository<Expense> {
         c.name as category_name,
         c.icon as category_icon,
         c.color as category_color,
-        (SELECT COUNT(*) FROM expense_photos p WHERE p.expense_id = e.id AND p.deleted_at IS NULL) as photo_count
+        (SELECT COUNT(*) FROM expense_photos p WHERE p.expense_id = e.id AND p.deleted_at IS NULL) as photo_count,
+        CASE WHEN e.device_id = ? THEN 1 ELSE 0 END as is_local,
+        COALESCE(kd.owner_name, '') as author_name
       FROM expenses e
       LEFT JOIN categories c ON c.id = e.category_id
+      LEFT JOIN known_devices kd ON kd.device_id = e.device_id
       WHERE ${conditions.join(' AND ')}
       ORDER BY e.date DESC, e.created_at DESC
-    `, ...params);
+    `, localDeviceId, ...params);
   }
 
   async create(input: CreateExpenseInput): Promise<Expense> {
@@ -85,6 +93,20 @@ export class ExpenseRepository extends BaseRepository<Expense> {
     const id = generateUUID();
     const now = nowISO();
     const deviceId = await this.getDeviceId(db);
+
+    // Validate FK references exist before inserting
+    const project = await db.getFirstAsync<{ id: string }>(
+      'SELECT id FROM projects WHERE id = ?', input.project_id
+    );
+    if (!project) {
+      throw new Error(`项目不存在 (id: ${input.project_id})`);
+    }
+    const category = await db.getFirstAsync<{ id: string }>(
+      'SELECT id FROM categories WHERE id = ?', input.category_id
+    );
+    if (!category) {
+      throw new Error(`分类不存在 (id: ${input.category_id})`);
+    }
 
     const exchangeRate = input.exchange_rate ?? 1;
     const baseAmount = input.amount * exchangeRate;

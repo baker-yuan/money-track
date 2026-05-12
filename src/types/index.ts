@@ -24,6 +24,16 @@ export interface BaseEntity {
 export interface Device {
   id: UUID;
   name: string;
+  owner_name: string;
+  created_at: ISODateString;
+}
+
+export interface KnownDevice {
+  id: UUID;
+  device_id: UUID;
+  owner_name: string;
+  device_name: string;
+  last_synced_at: ISODateString | null;
   created_at: ISODateString;
 }
 
@@ -196,6 +206,10 @@ export interface ExpenseWithCategory extends Expense {
   category_icon: string;
   category_color: string;
   photo_count: number;
+  /** Whether this expense was created on the local device */
+  is_local: boolean;
+  /** Name of the person who created this expense (from known_devices) */
+  author_name: string;
 }
 
 // ─── Result Type ─────────────────────────────────────────────────────────────

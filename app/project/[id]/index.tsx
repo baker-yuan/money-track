@@ -8,7 +8,7 @@ import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '@/
 import { formatCurrency, formatDateShort } from '@/utils';
 import type { UUID, ExpenseWithCategory } from '@/types';
 
-export default function ExpensesScreen() {
+export default function ProjectIndexScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const projectId = id as UUID;
@@ -32,22 +32,22 @@ export default function ExpensesScreen() {
         <View style={styles.expenseHeader}>
           <Text style={styles.expenseTitle} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.expenseAmount}>
-            {formatCurrency(item.base_amount, currentProject?.base_currency ?? item.currency)}
+            ¥{item.base_amount.toFixed(2)} 元
           </Text>
         </View>
         <View style={styles.expenseFooter}>
           <Text style={styles.categoryText}>{item.category_name}</Text>
-          {item.currency !== currentProject?.base_currency && (
-            <Text style={styles.originalAmount}>
-              {formatCurrency(item.amount, item.currency)}
-            </Text>
+          {!item.is_local && (
+            <View style={styles.syncBadge}>
+              <Ionicons name="sync" size={10} color={colors.primary} />
+              <Text style={styles.syncText}>
+                {item.author_name || '同步'}
+              </Text>
+            </View>
           )}
           <Text style={styles.dateText}>{formatDateShort(item.date)}</Text>
         </View>
       </View>
-      {item.photo_count > 0 && (
-        <Ionicons name="image-outline" size={14} color={colors.textTertiary} style={styles.photoIcon} />
-      )}
     </TouchableOpacity>
   );
 
@@ -57,17 +57,28 @@ export default function ExpensesScreen() {
     <View style={styles.container}>
       {expenses.length > 0 && (
         <View style={styles.summaryBar}>
-          <Text style={styles.summaryLabel}>总支出</Text>
-          <Text style={styles.summaryAmount}>
-            {formatCurrency(totalAmount, currentProject?.base_currency ?? expenses[0]!.currency)}
-          </Text>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>总支出</Text>
+            <Text style={styles.summaryAmount}>¥{totalAmount.toFixed(2)} 元</Text>
+          </View>
+          {currentProject?.budget && currentProject.budget > 0 && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>剩余预算</Text>
+              <Text style={[
+                styles.summaryAmount,
+                { color: currentProject.budget - totalAmount < 0 ? colors.error : colors.success }
+              ]}>
+                ¥{(currentProject.budget - totalAmount).toFixed(2)} 元
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
       {expenses.length === 0 && !isLoading ? (
         <EmptyState
           title="暂无支出记录"
-          message="记录你的第一笔旅行开支"
+          message="记录你的第一笔开支"
           action={
             <Button
               title="新增支出"
@@ -107,7 +118,7 @@ const styles = StyleSheet.create({
   },
   summaryBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
@@ -115,14 +126,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
+  summaryItem: {
+    alignItems: 'center',
+  },
   summaryLabel: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
     color: colors.textSecondary,
   },
   summaryAmount: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
     color: colors.text,
+    marginTop: 2,
   },
   list: {
     padding: spacing.lg,
@@ -173,17 +188,23 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textSecondary,
   },
-  originalAmount: {
+  syncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  syncText: {
     fontSize: fontSize.xs,
-    color: colors.textTertiary,
+    color: colors.primary,
   },
   dateText: {
     fontSize: fontSize.xs,
     color: colors.textTertiary,
     marginLeft: 'auto',
-  },
-  photoIcon: {
-    marginLeft: spacing.sm,
   },
   fab: {
     position: 'absolute',

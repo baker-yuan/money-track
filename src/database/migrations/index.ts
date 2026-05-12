@@ -187,4 +187,20 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 10,
+    description: 'Add owner_name to device and create known_devices table',
+    sql: `
+      ALTER TABLE device ADD COLUMN owner_name TEXT NOT NULL DEFAULT '';
+
+      CREATE TABLE IF NOT EXISTS known_devices (
+        id TEXT PRIMARY KEY,
+        device_id TEXT NOT NULL UNIQUE,
+        owner_name TEXT NOT NULL,
+        device_name TEXT NOT NULL,
+        last_synced_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];

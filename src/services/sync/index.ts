@@ -26,6 +26,8 @@ export interface SyncQRPayload {
   url: string;
   /** Host device ID */
   deviceId: string;
+  /** Host owner name */
+  ownerName: string;
   /** One-time session token for authentication */
   token: string;
   /** Project to sync */
@@ -47,6 +49,7 @@ export interface HandshakeRequest {
   type: 'handshake';
   deviceId: UUID;
   deviceName: string;
+  ownerName: string;
   /** The project ID being synced */
   projectId: UUID;
   /** Whether the guest already has this project */
@@ -57,6 +60,7 @@ export interface HandshakeResponse {
   type: 'handshake_ack';
   deviceId: UUID;
   deviceName: string;
+  ownerName: string;
   /** Full project data for bootstrap (if guest doesn't have it) */
   projectData: Project | null;
   /** Categories to bootstrap (global + project-specific) */
@@ -127,6 +131,7 @@ export class SyncOrchestrator {
     return {
       url: serverUrl,
       deviceId: device.id as string,
+      ownerName: device.owner_name,
       token: token as string,
       project: {
         id: project.id as string,
@@ -150,6 +155,9 @@ export class SyncOrchestrator {
     this.projectId = request.projectId;
     const device = await deviceRepository.getOrCreate();
 
+    // Record peer device info
+    await deviceRepository.upsertKnownDevice(request.deviceId, request.ownerName, request.deviceName);
+
     let projectData: Project | null = null;
     let categories: Category[] | null = null;
 
@@ -165,6 +173,7 @@ export class SyncOrchestrator {
       type: 'handshake_ack',
       deviceId: device.id,
       deviceName: device.name,
+      ownerName: device.owner_name,
       projectData,
       categories,
     };
@@ -220,6 +229,7 @@ export class SyncOrchestrator {
       type: 'handshake',
       deviceId: device.id,
       deviceName: device.name,
+      ownerName: device.owner_name,
       projectId,
       hasProject,
     };

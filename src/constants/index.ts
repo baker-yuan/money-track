@@ -3,11 +3,11 @@ import { toCurrencyCode } from '@/utils';
 
 export { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from './theme';
 
-export const APP_NAME = 'Money Track';
+export const APP_NAME = '记账本';
 
 export const DB_NAME = 'money_track.db';
 
-export const DEFAULT_CURRENCY: CurrencyCode = toCurrencyCode('USD');
+export const DEFAULT_CURRENCY: CurrencyCode = toCurrencyCode('CNY');
 
 export const SYNC_TIMEOUT_MS = 60_000;
 export const SYNC_PORT_RANGE = { min: 49152, max: 65535 };
@@ -40,10 +40,6 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   { name: '餐饮', icon: 'restaurant', color: '#EF4444' },
   { name: '购物', icon: 'cart', color: '#F59E0B' },
   { name: '景点', icon: 'camera', color: '#10B981' },
-  { name: '娱乐', icon: 'game-controller', color: '#EC4899' },
-  { name: '通讯', icon: 'wifi', color: '#06B6D4' },
-  { name: '医疗', icon: 'medkit', color: '#F43F5E' },
-  { name: '签证', icon: 'document-text', color: '#6366F1' },
   { name: '其他', icon: 'ellipsis-horizontal', color: '#6B7280' },
 ];
 
