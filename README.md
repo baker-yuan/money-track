@@ -9,11 +9,11 @@
 
 ## 演示
 
-<video src="docs/demo.mp4" controls width="300"></video>
+<video src="docs/01-记账本演示视频.mp4" controls width="300"></video>
 
 演示视频展示了完整的使用流程：创建项目、添加账目、分类管理、多设备扫码同步等核心操作。
 
-> 视频文件：[docs/demo.mp4](docs/demo.mp4)
+> 视频文件：[docs/01-记账本演示视频.mp4](docs/01-记账本演示视频.mp4)
 
 ## 核心功能
 
