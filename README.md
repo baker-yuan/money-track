@@ -11,6 +11,10 @@
 
 <video src="docs/demo.mp4" controls width="300"></video>
 
+演示视频展示了完整的使用流程：创建项目、添加账目、分类管理、多设备扫码同步等核心操作。
+
+> 视频文件：[docs/demo.mp4](docs/demo.mp4)
+
 ## 核心功能
 
 - **多项目管理** — 按旅行、活动或用途组织账本，每个项目独立预算与货币设置
@@ -106,7 +110,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/user/money-track.git
+git clone https://github.com/baker-yuan/money-track.git
 cd money-track
 
 # 安装依赖
@@ -153,6 +157,41 @@ npm run build:android # 构建 Android APK → build/money-track.apk
 - 数据库操作通过 Repository 层，禁止 UI 直接操作 DB
 - 写操作必须同时写 entity 表和 `change_log`（原子事务）
 - 使用 Zod 做系统边界校验（用户输入、导入、同步数据）
+
+## 开源组件
+
+### 运行时依赖
+
+| 组件 | 版本 | 说明 | 链接 |
+|------|------|------|------|
+| React | 19.1.0 | UI 框架 | [reactjs.org](https://react.dev/) |
+| React Native | 0.81.5 | 跨平台移动框架 | [reactnative.dev](https://reactnative.dev/) |
+| Expo | 54.0 | React Native 开发平台 | [expo.dev](https://expo.dev/) |
+| Expo Router | 6.0 | 文件系统路由 | [docs.expo.dev/router](https://docs.expo.dev/router/introduction/) |
+| Expo SQLite | 16.0 | 本地 SQLite 数据库 | [docs.expo.dev/versions/latest/sdk/sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) |
+| Expo Camera | 17.0 | 相机访问 | [docs.expo.dev/versions/latest/sdk/camera](https://docs.expo.dev/versions/latest/sdk/camera/) |
+| Expo Location | 19.0 | GPS 定位服务 | [docs.expo.dev/versions/latest/sdk/location](https://docs.expo.dev/versions/latest/sdk/location/) |
+| Expo Image Picker | 17.0 | 图片选择器 | [docs.expo.dev/versions/latest/sdk/imagepicker](https://docs.expo.dev/versions/latest/sdk/imagepicker/) |
+| Expo File System | 19.0 | 文件读写 | [docs.expo.dev/versions/latest/sdk/filesystem](https://docs.expo.dev/versions/latest/sdk/filesystem/) |
+| Expo Network | 8.0 | 网络状态检测 | [docs.expo.dev/versions/latest/sdk/network](https://docs.expo.dev/versions/latest/sdk/network/) |
+| Expo Crypto | 15.0 | 加密与 UUID 生成 | [docs.expo.dev/versions/latest/sdk/crypto](https://docs.expo.dev/versions/latest/sdk/crypto/) |
+| Zustand | 5.0 | 轻量状态管理 | [github.com/pmndrs/zustand](https://github.com/pmndrs/zustand) |
+| Zod | 4.4 | 运行时类型校验 | [zod.dev](https://zod.dev/) |
+| PapaParse | 5.5 | CSV 解析与导出 | [papaparse.com](https://www.papaparse.com/) |
+| React Native QRCode SVG | 6.3 | QR 码生成 | [github.com/awesomejerry/react-native-qrcode-svg](https://github.com/awesomejerry/react-native-qrcode-svg) |
+| React Native SVG | 15.12 | SVG 渲染 | [github.com/software-mansion/react-native-svg](https://github.com/software-mansion/react-native-svg) |
+| React Native Screens | 4.16 | 原生导航容器 | [github.com/software-mansion/react-native-screens](https://github.com/software-mansion/react-native-screens) |
+| React Native Gesture Handler | 2.28 | 手势处理 | [docs.swmansion.com/react-native-gesture-handler](https://docs.swmansion.com/react-native-gesture-handler/) |
+| React Native Safe Area Context | 5.6 | 安全区域适配 | [github.com/th3rdwave/react-native-safe-area-context](https://github.com/th3rdwave/react-native-safe-area-context) |
+
+### 开发依赖
+
+| 组件 | 版本 | 说明 | 链接 |
+|------|------|------|------|
+| TypeScript | 5.9 | 类型系统 | [typescriptlang.org](https://www.typescriptlang.org/) |
+| Jest | 29.7 | 测试框架 | [jestjs.io](https://jestjs.io/) |
+| ts-jest | 29.4 | Jest TypeScript 预处理 | [github.com/kulshekhar/ts-jest](https://github.com/kulshekhar/ts-jest) |
+| Babel Plugin Module Resolver | 5.0 | 路径别名解析 | [github.com/tleuber/babel-plugin-module-resolver](https://github.com/tleunen/babel-plugin-module-resolver) |
 
 ## 许可证
 
